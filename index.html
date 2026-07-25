@@ -1008,6 +1008,7 @@
     .tiktok-carousel-wrap {
       position: relative;
       margin: 0 -24px 36px;
+      overflow: hidden;
       -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
       mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
     }
@@ -1015,18 +1016,17 @@
     .tiktok-carousel {
       display: flex;
       gap: 16px;
-      overflow-x: auto;
+      width: max-content;
       padding: 4px 24px;
-      scrollbar-width: none;
       cursor: grab;
       user-select: none;
+      will-change: transform;
+      touch-action: pan-y;
     }
 
     .tiktok-carousel.dragging {
       cursor: grabbing;
     }
-
-    .tiktok-carousel::-webkit-scrollbar { display: none; }
 
     .tiktok-card {
       position: relative;
@@ -1859,15 +1859,27 @@
 
       let isDown = false;
       let startX = 0;
-      let startScroll = 0;
+      let startTranslate = 0;
       let moved = false;
       let autoScroll = true;
       let resumeTimer = null;
+      let x = 0; // current translateX (negative = moved left)
 
       function pauseAuto() {
         autoScroll = false;
         clearTimeout(resumeTimer);
         resumeTimer = setTimeout(() => { autoScroll = true; }, 2500);
+      }
+
+      function halfWidth() {
+        return track.scrollWidth / 2;
+      }
+
+      function normalizeX() {
+        const half = halfWidth();
+        if (half <= 0) return;
+        while (x <= -half) x += half;
+        while (x > 0) x -= half;
       }
 
       track.addEventListener('mousedown', (e) => {
@@ -1876,12 +1888,13 @@
         pauseAuto();
         track.classList.add('dragging');
         startX = e.pageX;
-        startScroll = track.scrollLeft;
+        startTranslate = x;
       });
 
       window.addEventListener('mouseup', () => {
         isDown = false;
         track.classList.remove('dragging');
+        normalizeX();
       });
 
       window.addEventListener('mouseleave', () => {
@@ -1894,7 +1907,8 @@
         e.preventDefault();
         const dx = e.pageX - startX;
         if (Math.abs(dx) > 4) moved = true;
-        track.scrollLeft = startScroll - dx;
+        x = startTranslate + dx;
+        track.style.transform = `translateX(${x}px)`;
       });
 
       // Prevent accidental link click after a drag
@@ -1911,12 +1925,11 @@
       // (very common on mobile) must NOT stop the carousel animation.
       let touchStartX = 0;
       let touchStartY = 0;
-      let touchStartScroll = 0;
       let touchIsHorizontal = false;
       track.addEventListener('touchstart', (e) => {
         touchStartX = e.touches[0].pageX;
         touchStartY = e.touches[0].pageY;
-        touchStartScroll = track.scrollLeft;
+        startTranslate = x;
         touchIsHorizontal = false;
       }, { passive: true });
 
@@ -1929,22 +1942,23 @@
           if (!touchIsHorizontal) return; // vertical page scroll, leave carousel alone
         }
         pauseAuto();
-        track.scrollLeft = touchStartScroll - dx;
+        x = startTranslate + dx;
+        track.style.transform = `translateX(${x}px)`;
       }, { passive: true });
 
       track.addEventListener('touchend', () => {
         pauseAuto();
+        normalizeX();
       }, { passive: true });
 
       // Continuous auto-scroll to the left, looping seamlessly
       const SPEED = 0.6; // px per frame
       function tick() {
         if (autoScroll && !isDown) {
-          const half = track.scrollWidth / 2;
-          track.scrollLeft += SPEED;
-          if (track.scrollLeft >= half) {
-            track.scrollLeft -= half;
-          }
+          const half = halfWidth();
+          x -= SPEED;
+          if (x <= -half) x += half;
+          track.style.transform = `translateX(${x}px)`;
         }
         requestAnimationFrame(tick);
       }
