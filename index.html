@@ -1152,6 +1152,16 @@
       .nav-links { display: none; }
       .nav-tiktok-btn { display: none; }
       .nav-mobile-toggle { display: flex; }
+      .hero-left { text-align: center; }
+      .hero-eyebrow { justify-content: center; }
+      .eyebrow-dash { display: none; }
+      .eyebrow-text { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+      .eyebrow-line1 { display: block; text-align: center; }
+      .eyebrow-line2 { display: block; }
+      .eyebrow-icon-link { margin-right: 6px; transform: none; }
+      .hero-founder { justify-content: center; flex-wrap: nowrap; }
+      .sub-bar { justify-content: center; }
+      .sub-bar-right { justify-content: center; }
     }
 
     @media (max-width: 640px) {
@@ -1918,7 +1928,12 @@
           touchIsHorizontal = Math.abs(dx) > Math.abs(dy);
           if (!touchIsHorizontal) return; // vertical page scroll, leave carousel alone
         }
+        pauseAuto();
         track.scrollLeft = touchStartScroll - dx;
+      }, { passive: true });
+
+      track.addEventListener('touchend', () => {
+        pauseAuto();
       }, { passive: true });
 
       // Continuous auto-scroll to the left, looping seamlessly
